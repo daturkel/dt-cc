@@ -1,0 +1,9 @@
+{
+    "name": "dt-git",
+    "description": "Tools for interacting with git and github.",
+    "version": "0.1.0",
+    "author": {
+        "name": "Dan Turkel",
+        "email": "daturkel@gmail.com"
+    }
+}

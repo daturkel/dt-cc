@@ -1,0 +1,9 @@
+{
+  "name": "dt-code",
+  "description": "Tools for improving code quality.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Dan Turkel",
+    "email": "daturkel@gmail.com"
+  }
+}

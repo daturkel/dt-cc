@@ -1,0 +1,23 @@
+{
+  "name": "dt-cc",
+  "owner": {
+    "name": "Dan Turkel",
+    "email": "daturkel@gmail.com"
+  },
+  "metadata": {
+    "description": "A set of useful Claude Code tools from Dan Turkel",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "dt-git",
+      "source": "./plugins/dt-git",
+      "description": "Perform useful actions for version control with git."
+    },
+    {
+      "name": "dt-code",
+      "source": "./plugins/dt-code",
+      "description": "Tools for improving code quality."
+    }
+  ]
+}
