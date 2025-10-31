@@ -13,7 +13,7 @@ Usage:
 - Current git status: !`git status`
 - Current branch: !`git branch --show-current`
 - Commits in this branch (not in default): !`git log --oneline origin/HEAD..HEAD`
-- Full diff from default branch: !`git diff origin/HEAD...HEAD`
+- Full diff from default branch: !`git diff origin/main`
 
 ## Your task
 
