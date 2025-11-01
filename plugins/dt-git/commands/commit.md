@@ -33,9 +33,11 @@ Based on the above context:
    - Focuses on the "why" rather than the "what"
    - Follows the repository's commit message style (from recent commits above)
    - Is 1-2 sentences maximum
-4. Create the commit using the drafted message
+4. Create a NEW commit using the drafted message
 
 Important:
+- ALWAYS create a new commit - NEVER amend existing commits
+- Use `git commit` without the `--amend` flag
 - If no changes are staged (and `all` not used), inform the user and do not create an empty commit
 - Warn the user if sensitive files (.env, credentials.json, etc.) are about to be committed
 - Do NOT push the commit unless explicitly asked
