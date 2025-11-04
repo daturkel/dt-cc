@@ -1,6 +1,6 @@
 ---
 name: git-ops
-description: Get information about the state of a git repo, get diffs, make commits, etc.. Use this skill when the user needs to accomplish git tasks.
+description: Get information about the state of a git repo, get diffs, make commits, make PRs, etc.. Use this skill when the user needs to accomplish git tasks.
 allowed-tools:
   - Bash(git:*)
   - Bash(ls:*)
