@@ -12,6 +12,22 @@ allowed-tools:
 
 This skill provides comprehensive git repository information for commits, PRs, and general repository status.
 
+## Important: User Confirmation Required
+
+**ALWAYS ask for user confirmation before**:
+- Creating commits (`git commit`)
+- Pushing to remote (`git push`)
+- Creating pull requests (which includes pushing)
+
+Use the `AskUserQuestion` tool to present the proposed action and get explicit approval before executing.
+
+**These operations can be performed without confirmation**:
+- Reading repository status (`git status`, `git diff`, `git log`, etc.)
+- Staging files (`git add`)
+- Creating/switching branches (`git branch`, `git checkout`)
+- Fetching from remote (`git fetch`)
+- All other read-only or local-only git operations
+
 ## Instructions
 
 Follow these steps to gather and present git information:
@@ -60,28 +76,32 @@ Shows full diff of unstaged changes.
 
 When the user asks to create a commit:
 
-1. **Determine what to commit**:
-   - If user says "commit all" or similar: stage everything with `git add .`
-   - Otherwise only commit staged changes
+1. **Gather information about changes**:
+   - Check what files would be committed
+   - Review the diffs to understand the changes
+   - Check recent commit history for message style: `git log --oneline -10`
 
 2. **Draft commit message** based on recent history style:
-```bash
-git log --oneline -10
-```
    - Keep it 1-2 sentences maximum
    - Focus on "why" not "what"
    - Follow the repository's commit message style
 
-3. **Create the commit**:
-```bash
-git commit -m "Your concise commit message"
-```
+3. **Ask for confirmation using AskUserQuestion tool**:
+   - Present the proposed commit message
+   - Show what files will be committed
+   - Warn about sensitive files (.env, credentials.json, etc.) if present
+   - Ask user to approve, modify, or cancel
+
+4. **If approved, create the commit**:
+   - If user said "commit all" or similar: stage everything with `git add .` first
+   - Otherwise only commit staged changes
+   - Create the commit: `git commit -m "Your concise commit message"`
 
 **Important rules**:
+- ALWAYS ask for confirmation before committing using the AskUserQuestion tool
 - ALWAYS create NEW commits, NEVER use `--amend`
-- Warn about sensitive files (.env, credentials.json, etc.) before committing
-- Don't push unless explicitly asked
 - If nothing staged and not staging all, inform user (don't create empty commit)
+- User must explicitly approve the commit before executing it
 
 ### 5. Recent Commit History
 ```bash
@@ -133,12 +153,26 @@ git diff origin/main
 ```
    - If no commits ahead of default branch, inform user
 
-3. **Push to remote if needed**:
+3. **Draft PR title and description** based on all changes:
+   - Analyze ALL commits and the full diff, not just the latest commit
+   - Draft a concise title (50 chars or less)
+   - Create a detailed summary with:
+     - What was changed and why
+     - Major changes as bullet points
+     - Focus on "why" and user impact
+
+4. **Ask for confirmation using AskUserQuestion tool**:
+   - Present the proposed PR title and description
+   - Show summary of files changed and commits included
+   - Confirm that user wants to push (if needed) and create PR
+   - Allow user to approve, modify, or cancel
+
+5. **If approved, push to remote if needed**:
 ```bash
 git push -u origin $(git branch --show-current)
 ```
 
-4. **Create PR with `gh` CLI**:
+6. **Create PR with `gh` CLI**:
 ```bash
 gh pr create --title "Concise title (50 chars or less)" --body "$(cat <<'EOF'
 ## Summary
@@ -155,13 +189,15 @@ EOF
 )"
 ```
 
-5. **Return the PR URL** when done
+7. **Return the PR URL** when done
 
 **Important notes**:
+- ALWAYS ask for confirmation before pushing and creating PR using the AskUserQuestion tool
 - Analyze ALL commits that will be included, not just the latest one
 - Use HEREDOC format for the body to ensure proper formatting
 - Do NOT use the Task or TodoWrite tools when creating PRs
 - Adapt base branch name (try `main`, `master`, `origin/main`, etc.)
+- User must explicitly approve before pushing to remote
 
 ## Presenting Information
 
@@ -220,9 +256,13 @@ Suggested commit message:
 git status
 git diff --stat
 git diff
+git log --oneline -10
 ```
 
-If nothing staged, stage modified files and commit:
+Draft commit message based on changes, then ask for confirmation:
+- Use AskUserQuestion to present: "Add config parser with tests"
+- Show files that will be committed
+- After approval, stage and commit:
 ```bash
 git add -u
 git commit -m "Add config parser with tests"
