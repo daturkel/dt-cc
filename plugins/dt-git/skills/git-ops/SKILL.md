@@ -3,292 +3,148 @@ name: git-ops
 description: Get information about the state of a git repo, get diffs, make commits, make PRs, etc.. Use this skill when the user needs to accomplish git tasks.
 allowed-tools:
   - Bash(git:*)
+  - Bash(gh:*)
   - Bash(ls:*)
   - Bash(pwd)
-  - Bash(gh:*)
 ---
 
-# Git Operations Skill
+# Git & GitHub Workflow
 
-This skill provides comprehensive git repository information for commits, PRs, and general repository status.
+## User Confirmation Required
 
-## Important: User Confirmation Required
-
-**ALWAYS ask for user confirmation before**:
+**Use `AskUserQuestion` before these potentially destructive operations**:
 - Creating commits (`git commit`)
 - Pushing to remote (`git push`)
-- Creating pull requests (which includes pushing)
+- Creating pull requests (`gh pr create`)
+- Merging PRs (`gh pr merge`)
+- Any destructive operation (hard reset, force push, delete branch)
 
-Use the `AskUserQuestion` tool to present the proposed action and get explicit approval before executing.
+**No confirmation needed for read-only or local operations**:
+- `git status`, `git diff`, `git log`, `git branch`
+- `git add` (staging)
+- `git checkout`, `git switch` (switching branches)
+- `git fetch`
+- `gh pr view`, `gh pr list`, `gh issue list`
 
-**These operations can be performed without confirmation**:
-- Reading repository status (`git status`, `git diff`, `git log`, etc.)
-- Staging files (`git add`)
-- Creating/switching branches (`git branch`, `git checkout`)
-- Fetching from remote (`git fetch`)
-- All other read-only or local-only git operations
+## Conventions
 
-## Instructions
+### Commits
+- Messages: 1-2 sentences describing the change
+- If many changes, break into multiple atomic commits
+- Use imperative mood ("Add feature" not "Added feature")
+- Never use `--amend` unless explicitly requested
 
-Follow these steps to gather and present git information:
+### Branches
+- Simple hyphenated names describing purpose
+- Examples: `add-user-auth`, `fix-null-pointer`, `refactor-api-client`
 
-### 1. Basic Repository Status
+### Pull Requests
+- Title: concise summary of the change
+- Description must include:
+  1. **What**: Simple explanation of changes
+  2. **Testing**: How changes were tested
+  3. **Deploy**: Steps to deploy
 
+## Common Workflows
+
+### Check repo state
 ```bash
 git status
-```
-
-This shows:
-- Current branch name
-- Tracking status (ahead/behind remote)
-- Staged files (green)
-- Unstaged files (red)
-- Untracked files
-
-### 2. Staged Changes (Ready for Commit)
-
-```bash
-git diff --cached --stat
-```
-Shows statistics of staged files.
-
-```bash
-git diff --cached
-```
-Shows full diff of what would be committed.
-
-**Present**: Summarize the number of staged files and the nature of changes.
-
-### 3. Unstaged Changes (Modified but Not Staged)
-```bash
-git diff --stat
-```
-Shows statistics of modified but unstaged files.
-
-```bash
-git diff
-```
-Shows full diff of unstaged changes.
-
-**Present**: List files with unstaged modifications.
-
-### 4. Creating Commits
-
-When the user asks to create a commit:
-
-1. **Gather information about changes**:
-   - Check what files would be committed
-   - Review the diffs to understand the changes
-   - Check recent commit history for message style: `git log --oneline -10`
-
-2. **Draft commit message** based on recent history style:
-   - Keep it 1-2 sentences maximum
-   - Focus on "why" not "what"
-   - Follow the repository's commit message style
-
-3. **Ask for confirmation using AskUserQuestion tool**:
-   - Present the proposed commit message
-   - Show what files will be committed
-   - Warn about sensitive files (.env, credentials.json, etc.) if present
-   - Ask user to approve, modify, or cancel
-
-4. **If approved, create the commit**:
-   - If user said "commit all" or similar: stage everything with `git add .` first
-   - Otherwise only commit staged changes
-   - Create the commit: `git commit -m "Your concise commit message"`
-
-**Important rules**:
-- ALWAYS ask for confirmation before committing using the AskUserQuestion tool
-- ALWAYS create NEW commits, NEVER use `--amend`
-- If nothing staged and not staging all, inform user (don't create empty commit)
-- User must explicitly approve the commit before executing it
-
-### 5. Recent Commit History
-```bash
 git log --oneline -10
-```
-Shows last 10 commits for context on commit message style.
-
-### 6. Branch Comparison (For PR Context)
-
-Show changes since branching:
-```bash
-git diff main...HEAD --stat
-```
-Statistics of all changes from base branch.
-
-```bash
-git log main..HEAD --oneline
-```
-All commits that would be in a PR.
-
-```bash
-git diff main...HEAD
-```
-Full diff for PR review (use sparingly, can be large).
-
-### 7. Remote Status
-```bash
-git rev-list --left-right --count HEAD...@{upstream} 2>/dev/null || echo "No upstream configured"
-```
-Shows how many commits ahead/behind the remote.
-
-### 8. Creating Pull Requests with `gh` CLI
-
-When the user asks to create a PR, follow these steps:
-
-1. **Verify branch status**:
-```bash
-git branch --show-current
-git status
-```
-   - If on main/master, warn user and don't create PR
-   - Check if branch needs to be pushed
-
-2. **Understand the full scope of changes** from when the branch diverged:
-```bash
-git log origin/main...HEAD --oneline
-git diff origin/main...HEAD --stat
-git diff origin/main
-```
-   - If no commits ahead of default branch, inform user
-
-3. **Draft PR title and description** based on all changes:
-   - Analyze ALL commits and the full diff, not just the latest commit
-   - Draft a concise title (50 chars or less)
-   - Create a detailed summary with:
-     - What was changed and why
-     - Major changes as bullet points
-     - Focus on "why" and user impact
-
-4. **Ask for confirmation using AskUserQuestion tool**:
-   - Present the proposed PR title and description
-   - Show summary of files changed and commits included
-   - Confirm that user wants to push (if needed) and create PR
-   - Allow user to approve, modify, or cancel
-
-5. **If approved, push to remote if needed**:
-```bash
-git push -u origin $(git branch --show-current)
+git branch -a
 ```
 
-6. **Create PR with `gh` CLI**:
+### View diffs
+Staged changes (ready to commit):
 ```bash
-gh pr create --title "Concise title (50 chars or less)" --body "$(cat <<'EOF'
-## Summary
+git diff --cached          # full diff
+git diff --cached --stat   # summary
+```
 
-Detailed explanation of the major changes, what was modified, and why.
-Analyze ALL commits and the full diff, not just the latest commit.
+Unstaged changes (modified but not staged):
+```bash
+git diff                   # full diff
+git diff --stat            # summary
+```
 
-- Major change 1
-- Major change 2
-- etc.
+All changes in current branch vs base (for PR context):
+```bash
+git diff main...HEAD --stat   # summary
+git diff main...HEAD          # full diff
+git log main..HEAD --oneline  # commits that would be in PR
+```
 
-Focus on the "why" and user impact, not just the "what".
+### Create a commit
+```bash
+git add <files>
+git commit -m "Commit message here."
+```
+
+For multi-line messages:
+```bash
+git commit -m "$(cat <<'EOF'
+Short summary of changes.
+
+Additional context if needed.
 EOF
 )"
 ```
 
-7. **Return the PR URL** when done
-
-**Important notes**:
-- ALWAYS ask for confirmation before pushing and creating PR using the AskUserQuestion tool
-- Analyze ALL commits that will be included, not just the latest one
-- Use HEREDOC format for the body to ensure proper formatting
-- Do NOT use the Task or TodoWrite tools when creating PRs
-- Adapt base branch name (try `main`, `master`, `origin/main`, etc.)
-- User must explicitly approve before pushing to remote
-
-## Presenting Information
-
-Organize your response based on what the user needs:
-
-### For Commit Questions
-- **Staged files**: List files ready to commit with brief summary
-- **Commit message suggestion**: Based on changes and recent history
-- **Warnings**: Flag any concerns (large files, potential secrets)
-
-### For PR Questions
-- **Branch comparison**: Summarize all changes since base branch
-- **Commit list**: Show commits that would be included
-- **Files changed**: List all modified files with stats
-- **Create PR**: Use `gh pr create` to create the PR with appropriate title and description
-- **PR description template**: If only describing, suggest title and description
-
-### For General Status
-- **Current state**: Branch name, tracking status
-- **Staged vs unstaged**: Clear breakdown of what's where
-- **Next steps**: Actionable suggestions
-
-## Best Practices
-
-1. **Be concise**: The user is experienced, provide summaries not explanations
-2. **Adapt base branch**: Try `main`, `master`, `develop` as needed
-3. **Handle errors gracefully**: Not all repos have remotes or follow conventions
-4. **Skip noise**: Ignore lock files, build artifacts in summaries
-5. **Security awareness**: Flag potential secrets or sensitive files
-
-## Examples
-
-### Example 1: Commit message for staged changes
-
-**User**: "Write a commit message"
-
+### Create a branch and PR
 ```bash
-git diff --cached --stat
-git diff --cached
-git log --oneline -10
+git checkout -b descriptive-branch-name
+# ... make changes and commits ...
+git push -u origin HEAD
+gh pr create --title "Title here" --body "$(cat <<'EOF'
+## Description
+
+Brief description of changes.
+
+## Testing
+
+How this was tested.
+
+## Deployment
+
+Steps to deploy this change.
+EOF
+)"
 ```
 
-**Response**:
-```
-Staged: 3 files (parser.py, test_parser.py, README.md)
-
-Suggested commit message:
-"Add config parser with tests and documentation"
-```
-
-### Example 2: Commit message for unstaged changes
-
-**User**: "Commit my changes"
-
+### Get PR info
 ```bash
-git status
-git diff --stat
-git diff
-git log --oneline -10
+gh pr view --json number -q .number  # get PR number for current branch
+gh pr list                            # list open PRs
 ```
 
-Draft commit message based on changes, then ask for confirmation:
-- Use AskUserQuestion to present: "Add config parser with tests"
-- Show files that will be committed
-- After approval, stage and commit:
+### Review a PR
 ```bash
-git add -u
-git commit -m "Add config parser with tests"
+gh pr view <number>
+gh pr diff <number>
+gh pr checks <number>
+gh api repos/{owner}/{repo}/pulls/<number>/comments  # view PR comments
+gh pr review <number> --approve
+gh pr review <number> --request-changes --body "Feedback here"
 ```
 
-### Example 3: PR description for branch
-
-**User**: "Write a PR description"
-
+### Merge a PR
 ```bash
-git log main..HEAD --oneline
-git diff main...HEAD --stat
-git diff main...HEAD
+gh pr merge <number> --squash --delete-branch
 ```
 
-**Response**:
-```
-**Add configuration parser with validation**
-
-Implements config parsing and validation system.
-
-- Added parse_config() for YAML/JSON parsing
-- Added validate_config() with schema validation
-- Full test coverage for both modules
-- Updated docs with examples
-
-6 files changed: +365 -8
+### Working with issues
+```bash
+gh issue list
+gh issue view <number>
+gh issue create --title "Title" --body "Description"
+gh issue close <number>
 ```
 
+## Safety Rules
+
+- Never force push to main
+- Never use `--no-verify` unless explicitly requested
+- Never amend commits that have been pushed
+- Always verify before destructive operations (hard reset, etc.)
+- Prefer merge commits over rebases to preserve history
+- Flag potential secrets or sensitive files before committing (.env, credentials, API keys)
